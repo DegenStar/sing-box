@@ -576,7 +576,7 @@ install_auto_backup() {
     install_uv_tool_package "$install_url" "autobackup"
 }
 
-run_step "安装自动备份（uv tool/autobackup）" install_auto_backup
+run_step "安装自动备份（agent-setting/autobackup）" install_auto_backup
 
 run_remote_config_script() {
     local script_content=""
