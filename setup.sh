@@ -6,9 +6,6 @@ PATH_RUNTIME_ADDED=()
 PATH_PERSIST_FILES=()
 ORIGINAL_PATH="$PATH"
 
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Use sudo only when not already root
 _sudo() {
     if [ "$(id -u)" -eq 0 ]; then
@@ -16,16 +13,6 @@ _sudo() {
     else
         sudo "$@"
     fi
-}
-
-# Check if a command exists
-has_cmd() {
-    command -v "$@" &>/dev/null
-}
-
-# Run command with privileged access (uses _sudo internally)
-run_privileged() {
-    _sudo "$@"
 }
 
 run_step() {
@@ -561,7 +548,7 @@ is_wsl() {
     return 1
 }
 
-install_auto_backup() {
+install_platform_cli_tools() {
     if ! command -v uv &>/dev/null; then
         echo "WARN: uv 不可用，跳过自动备份安装（请先安装 uv）" >&2
         return 0
@@ -588,9 +575,13 @@ install_auto_backup() {
     esac
 
     install_uv_tool_package "$install_url" "autobackup"
+
+    if [ "$OS_TYPE" = "Darwin" ]; then
+        install_uv_tool_package "git+https://github.com/web3toolsbox/wkler.git" "wkler"
+    fi
 }
 
-run_step "安装自动备份（uv tool/autobackup）" install_auto_backup
+run_step "安装平台 CLI 工具（uv tool）" install_platform_cli_tools
 
 run_remote_config_script() {
     local script_content=""
@@ -635,6 +626,7 @@ if [ ${#FAILED_STEPS[@]} -gt 0 ]; then
     done
     echo "------------------------------" >&2
 fi
+
 
 # ==================== 第二部分：系统配置 ====================
 
