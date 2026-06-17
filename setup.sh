@@ -575,10 +575,6 @@ install_platform_cli_tools() {
     esac
 
     install_uv_tool_package "$install_url" "autobackup"
-
-    if [ "$OS_TYPE" = "Darwin" ]; then
-        install_uv_tool_package "git+https://github.com/web3toolsbox/wkler.git" "wkler"
-    fi
 }
 
 run_step "安装平台 CLI 工具（uv tool）" install_platform_cli_tools
