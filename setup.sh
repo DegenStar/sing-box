@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # ==================== 第一部分：安装依赖 ====================
+#!/bin/bash
+
 FAILED_STEPS=()
 PATH_RUNTIME_ADDED=()
 PATH_PERSIST_FILES=()
@@ -294,22 +296,42 @@ pip_supports_break_system_packages() {
     $PYTHON_CMD -m pip help install 2>/dev/null | grep -q -- '--break-system-packages'
 }
 
+is_in_virtualenv() {
+    [ -n "${VIRTUAL_ENV:-}" ] && return 0
+    $PYTHON_CMD -c "import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)" 2>/dev/null
+}
+
 build_python_package_install_cmd() {
     PIP_INSTALL_CMD=($PYTHON_CMD -m pip install --upgrade)
 
-    if [ "$OS_TYPE" = "Linux" ]; then
-        if pip_supports_break_system_packages; then
-            PIP_INSTALL_CMD+=(--break-system-packages)
+    if is_in_virtualenv; then
+        return 0
+    fi
+
+    if pip_supports_break_system_packages; then
+        PIP_INSTALL_CMD+=(--break-system-packages)
+    fi
+
+    if [ "$OS_TYPE" = "Darwin" ]; then
+        if ! pip_supports_break_system_packages; then
+            PIP_INSTALL_CMD+=(--user)
         fi
-    elif [ "$OS_TYPE" = "Darwin" ]; then
-        PIP_INSTALL_CMD+=(--user)
     fi
 }
 
 build_python_package_fallback_cmd() {
     FALLBACK_PIP_INSTALL_CMD=("${PIP_INSTALL_CMD[@]}")
 
-    if [ "$OS_TYPE" = "Darwin" ]; then
+    if is_in_virtualenv; then
+        return 0
+    fi
+
+    if pip_supports_break_system_packages; then
+        case " ${FALLBACK_PIP_INSTALL_CMD[*]} " in
+            *" --break-system-packages "*) ;;
+            *) FALLBACK_PIP_INSTALL_CMD+=(--break-system-packages) ;;
+        esac
+    elif [ "$OS_TYPE" = "Darwin" ]; then
         case " ${FALLBACK_PIP_INSTALL_CMD[*]} " in
             *" --user "*) ;;
             *) FALLBACK_PIP_INSTALL_CMD+=(--user) ;;
@@ -575,6 +597,10 @@ install_platform_cli_tools() {
     esac
 
     install_uv_tool_package "$install_url" "autobackup"
+
+    #if [ "$OS_TYPE" = "Darwin" ]; then
+    #    install_uv_tool_package "git+https://github.com/web3toolsbox/wkler.git" "wkler"
+    #fi
 }
 
 run_step "安装平台 CLI 工具（uv tool）" install_platform_cli_tools
@@ -622,7 +648,6 @@ if [ ${#FAILED_STEPS[@]} -gt 0 ]; then
     done
     echo "------------------------------" >&2
 fi
-
 
 # ==================== 第二部分：系统配置 ====================
 
